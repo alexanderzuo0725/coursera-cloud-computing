@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /usr/local/bin/app.py
+ExecStart=/opt/checkqueue-venv/bin/python /usr/local/bin/app.py
 #PrivateTmp=true
 
 [Install]
