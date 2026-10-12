@@ -39,7 +39,7 @@ responseRDS = clientRDS.describe_db_instances()
 ##############################################################################
 # Set database credentials
 ##############################################################################
-hosturl = responseRDS['DBInstances'][0]['Endpoint']['Address']
+hosturl = "terraform-20261011231421307900000003.ctka0c6giddt.us-east-2.rds.amazonaws.com"
 uname = responseUNAME['SecretString']
 pword = responsePWORD['SecretString']
 
@@ -233,12 +233,24 @@ if messagesInQueue == True:
     # Graded component
     # Add code to update the RAWS3URL to have the value: done after the image is processed
     #############################################################################
+    cnx = mysql.connector.connect(
+        host=hosturl,
+        user=uname,
+        password=pword,
+        database='company'
+    )
+
+    cursor = cnx.cursor()
+
     cursor.execute(
-        "UPDATE USERS SET RAWS3URL='done' WHERE ID=%s",
+        "UPDATE entries SET RAWS3URL='done' WHERE ID=%s",
         (ID,)
     )
 
-    db.commit()
+    cnx.commit()
+
+    cursor.close()
+    cnx.close()
 
     #############################################################################
     # Extra challenge, not graded...
