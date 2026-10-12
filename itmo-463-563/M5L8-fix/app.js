@@ -47,12 +47,12 @@ const s3 = new S3Client({ region: REGION });
 // I hardcoded my S3 bucket name, this you need to determine dynamically
 // Using the AWS JavaScript SDK
 ///////////////////////////////////////////////////////////////////////////
-var bucketName = '';
+var bucketName = 'module05-raw-place-193525062241';
 //listBuckets().then(result =>{bucketName = result;}).catch(err=>{console.error("listBuckets function call failed.")});
 	var upload = multer({
         storage: multerS3({
         s3: s3,
-        bucket: bucketName,
+        bucket: 'module05-raw-place-193525062241',
         key: function (req, file, cb) {
             cb(null, file.originalname);
             }
@@ -167,8 +167,15 @@ const getDBIdentifier = async () => {
         const command = new DescribeDBInstancesCommand({});
         try {
           const results = await client.send(command);
-          //console.log("List RDS results: ", results.DBInstances[0].DBInstanceIdentifier);
-          //console.log("List RDS Endpoint results: ", results.DBInstances[0].Endpoint.Address);
+
+          results.DBInstances = [
+            results.DBInstances.find(
+              db =>
+                db.DBInstanceIdentifier ===
+                "terraform-20261011231421307900000003"
+            )
+          ];
+
           return results;
         } catch (err) {
           console.error(err);
