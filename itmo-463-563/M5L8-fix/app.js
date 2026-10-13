@@ -163,24 +163,17 @@ const getImagesFromS3Bucket = async (req,res) => {
 // Lookup Database Identifier
 //
 const getDBIdentifier = async () => {
-        const client = new RDSClient({ region: REGION });
-        const command = new DescribeDBInstancesCommand({});
-        try {
-          const results = await client.send(command);
-
-          results.DBInstances = [
-            results.DBInstances.find(
-              db =>
-                db.DBInstanceIdentifier ===
-                "terraform-20261011231421307900000003"
-            )
-          ];
-
-          return results;
-        } catch (err) {
-          console.error(err);
+  return {
+    DBInstances: [
+      {
+        Endpoint: {
+          Address:
+            "terraform-20261011231421307900000003.ctka0c6giddt.us-east-2.rds.amazonaws.com"
         }
-      };
+      }
+    ]
+  };
+};
       
       ////////////////////////////////////////////////
       // Select Record
