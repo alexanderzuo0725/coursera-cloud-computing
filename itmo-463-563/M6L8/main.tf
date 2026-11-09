@@ -191,6 +191,24 @@ resource "aws_iam_role_policy" "s3_fullaccess_policy" {
   })
 }
 
+resource "aws_iam_role_policy" "dynamodb_fullaccess_policy" {
+  name = "dynamodb_fullaccess_policy"
+  role = aws_iam_role.role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "dynamodb:*"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy
 # Add DynamoDB full access policy
 
@@ -544,12 +562,13 @@ output "backend-ip" {
 
 resource "aws_dynamodb_table" "coursera-dynamodb-table" {
   name           = var.dynamodb-name
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 20
-  write_capacity = 20
-  # Add hash key of type String and the RecordNumber attribute
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "RecordNumber"
 
-  # This will be the UUID and how we uniquely identify records
+  attribute {
+    name = "RecordNumber"
+    type = "S"
+  }
 
 
   tags = {
