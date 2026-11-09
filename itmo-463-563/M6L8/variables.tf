@@ -29,4 +29,4 @@ variable "region" {}
 variable "raw-s3-bucket" {}
 variable "finished-s3-bucket" {}
 variable "sqs-name" {}
-
+variable "dynamodb-name" {}
