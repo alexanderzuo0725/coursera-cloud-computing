@@ -26,6 +26,14 @@ const {
   ListQueuesCommand,
 } = require("@aws-sdk/client-sqs")
 
+const {
+  ListTablesCommand,
+  DynamoDBClient,
+  ScanCommand,
+  PutItemCommand,
+  QueryCommand
+} = require("@aws-sdk/client-dynamodb");
+
 
 // https://www.npmjs.com/package/uuid
 const { v4: uuidv4 } = require('uuid');
