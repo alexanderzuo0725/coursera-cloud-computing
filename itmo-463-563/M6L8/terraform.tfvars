@@ -18,4 +18,5 @@ region                 = "us-east-2"
 raw-s3-bucket          = "jrh-raw-bucket"
 finished-s3-bucket     = "jrh-finished-bucket"
 sqs-name               = "jrh-sqs"
+dynamodb-name          = "company"
 
