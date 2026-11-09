@@ -15,7 +15,8 @@ region = 'us-east-2'
 
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html
 clientSQS = boto3.client('sqs',region_name=region)
-clientrds = boto3.client('rds',region_name=region)
+responsedynamo = boto3.client('dynamodb',region_name=region)
+clientDynamo = boto3.client('dynamodb',region_name=region)
 clientSNS = boto3.client('sns',region_name=region)
 # https://github.com/boto/boto3/issues/1644
 # Needed to help generate pre-signed URLs
@@ -23,7 +24,11 @@ clientS3 = boto3.client('s3', region_name=region,config=Config(s3={'addressing_s
 
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html
 print("Getting a list of DynamoDB Tables...")
+def responseDynamoTables():
+    return responsedynamo.list_tables()
 
+
+responseDynamoTables = responseDynamoTables()
 
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs/client/list_queues.html
 print("Getting a list of SQS queues...")
@@ -136,11 +141,23 @@ if messagesInQueue == True:
 
     print(str(responsePresigned))
 
-    ###################################################################
-    # Add Dynamo Update code
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb/client/update_item.html
-    ###################################################################
-    # add presigned URL code to Item in DynamoDB
+    responseUpdateFinished = clientDynamo.update_item(
+        TableName=responseDynamoTables['TableNames'][0],
+        Key={
+            'RecordNumber': {
+                'S': responseMessages['Messages'][0]['Body']
+            }
+        },
+        UpdateExpression='SET FINSIHEDS3URL = :url',
+        ExpressionAttributeValues={
+            ':url': {
+                'S': str(responsePresigned)
+            }
+        }
+    )
+
+    print(responseUpdateFinished)
  
     #################################################################################
     # SEND Presigned URL to SNS Topics
@@ -184,6 +201,23 @@ if messagesInQueue == True:
     #############################################################################
     # Add code to update the RAWS3URL to have the value: done after the image is processed
     #############################################################################
+
+    responseUpdateRaw = clientDynamo.update_item(
+        TableName=responseDynamoTables['TableNames'][0],
+        Key={
+            'RecordNumber': {
+                'S': responseMessages['Messages'][0]['Body']
+            }
+        },
+        UpdateExpression='SET RAWS3URL = :val',
+        ExpressionAttributeValues={
+            ':val': {
+                'S': 'done'
+            }
+        }
+    )
+
+print(responseUpdateRaw)
 
 
 
