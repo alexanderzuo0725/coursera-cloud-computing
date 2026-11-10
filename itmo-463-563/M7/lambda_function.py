@@ -1,53 +1,125 @@
-#!/bin/bash
+import json
+import boto3
+from io import BytesIO
+from PIL import Image
+from botocore.exceptions import ClientError
+from botocore.config import Config
+import logging
 
-# Install dependecies here:
+logger = logging.getLogger()
+logger.setLevel("INFO")
 
-##############################################################################
-# Installing Nginx
-##############################################################################
-sudo apt update -y
-sudo apt install nginx unzip -y
+region = "us-east-2"
 
-##############################################################################
-# Enable and start Nginx service
-##############################################################################
-sudo systemctl enable nginx
-sudo systemctl start nginx
+dynamodb = boto3.client("dynamodb", region_name=region)
+sns = boto3.client("sns", region_name=region)
 
-##############################################################################
-# Install Node JS
-# https://github.com/nodesource/distributions#installation-instructions-deb
-##############################################################################
-curl -fsSL https://deb.nodesource.com/setup_20.x -o nodesource_setup.sh
-sudo bash nodesource_setup.sh
-sudo apt install -y nodejs
-node -v
-##############################################################################
-# Use NPM (node package manager to install AWS JavaScript SDK)
-##############################################################################
-# Run NPM to install the NPM Node packages needed for the code
-# You will start this NodeJS script by executing the command: node app.js
-# from the directory where app.js is located. The program `pm2` can be
-# used to auto start NodeJS applications (as they don't have a normal
-# systemd service handler).
-# <https://pm2.keymetrics.io/docs/usage/quick-start/>. This will require
-# the install of PM2 via npm as well.
-cd /home/ubuntu
-sudo -u ubuntu npm install @aws-sdk/client-dynamodb @aws-sdk/client-sqs @aws-sdk/client-s3 @aws-sdk/client-sns express multer multer-s3 uuid ip
-sudo npm install pm2 -g
+s3 = boto3.client(
+    "s3",
+    region_name=region,
+    config=Config(
+        s3={"addressing_style": "path"},
+        signature_version="s3v4"
+    )
+)
 
-# Command to clone your private repo via SSH usign the Private key
-####################################################################
-# Note - change "hajek.git" to be your private repo name (hawk ID) #
-####################################################################
-sudo -u ubuntu git clone git@github.com:alexanderzuo0725/coursera-cloud-computing.git
 
-# Start the nodejs app where it is located via PM2
-# https://pm2.keymetrics.io/docs/usage/quick-start
-cd /home/ubuntu/coursera-cloud-computing/itmo-463-563/M7
+def lambda_handler(event, context):
 
-sudo cp /home/ubuntu/coursera-cloud-computing/itmo-463-563/M7/default /etc/nginx/sites-available/default
-sudo systemctl daemon-reload
-sudo systemctl restart nginx
+    bucket_name = event["Records"][0]["s3"]["bucket"]["name"]
+    key = event["Records"][0]["s3"]["object"]["key"]
 
-sudo pm2 start app.js
+    response_tables = dynamodb.list_tables()
+    table_name = response_tables["TableNames"][0]
+
+    response_get = s3.get_object(
+        Bucket=bucket_name,
+        Key=key
+    )
+
+    file_bytes = response_get["Body"].read()
+
+    image = Image.open(BytesIO(file_bytes))
+    image = image.convert("L")
+
+    grayscale_file = "/tmp/grayscale-" + key
+    image.save(grayscale_file)
+
+    response_s3 = s3.list_buckets()
+
+    finished_bucket = ""
+
+    for bucket in response_s3["Buckets"]:
+        if "finished" in bucket["Name"]:
+            finished_bucket = bucket["Name"]
+
+    s3.upload_file(
+        grayscale_file,
+        finished_bucket,
+        key
+    )
+
+    presigned_url = s3.generate_presigned_url(
+        "get_object",
+        Params={
+            "Bucket": finished_bucket,
+            "Key": key
+        },
+        ExpiresIn=7200
+    )
+
+    response_scan = dynamodb.scan(
+        TableName=table_name
+    )
+
+    for item in response_scan["Items"]:
+
+        if (
+            "RAWS3URL" in item and
+            key in item["RAWS3URL"]["S"]
+        ):
+
+            record_number = item["RecordNumber"]["S"]
+
+            dynamodb.update_item(
+                TableName=table_name,
+                Key={
+                    "RecordNumber": {
+                        "S": record_number
+                    }
+                },
+                UpdateExpression="SET FINSIHEDS3URL = :url",
+                ExpressionAttributeValues={
+                    ":url": {
+                        "S": presigned_url
+                    }
+                }
+            )
+
+            dynamodb.update_item(
+                TableName=table_name,
+                Key={
+                    "RecordNumber": {
+                        "S": record_number
+                    }
+                },
+                UpdateExpression="SET RAWS3URL = :val",
+                ExpressionAttributeValues={
+                    ":val": {
+                        "S": "done"
+                    }
+                }
+            )
+
+    topics = sns.list_topics()
+
+    sns.publish(
+        TopicArn=topics["Topics"][0]["TopicArn"],
+        Subject="Your image is ready for download!",
+        Message="Image ready: " + presigned_url
+    )
+
+    return {
+        "statusCode": 200,
+        "body": json.dumps(presigned_url)
+    }
