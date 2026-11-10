@@ -1,6 +1,6 @@
 # Add values
 # Use the AMI of the custom Ec2 image you previously created
-imageid = "ami-021769d848635b6f4"
+imageid = "ami-08d36795d320c275b"
 # Use t2.micro for the AWS Free Tier
 instance-type          = "t2.micro"
 key-name               = "coursera-key"
