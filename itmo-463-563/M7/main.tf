@@ -539,9 +539,7 @@ resource "aws_sns_topic" "user_updates" {
 
 resource "aws_dynamodb_table" "coursera-dynamodb-table" {
   name           = var.dynamodb-name
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 20
-  write_capacity = 20
+  billing_mode = "PAY_PER_REQUEST"
   hash_key       = "RecordNumber"
   #range_key      = "datetime"
 
@@ -607,6 +605,64 @@ resource "aws_iam_role_policy" "s3_fullaccess_lambda_policy" {
 ##############################################################################
 # Create IAM Role Policy for SNS, SQS, and DynamoDB attach to the lambda role
 ##############################################################################
+
+resource "aws_iam_role_policy" "sns_fullaccess_lambda_policy" {
+
+resource "aws_iam_role_policy" "sqs_fullaccess_lambda_policy" {
+  name = "sqs_fullaccess_lambda_policy"
+  role = aws_iam_role.iam_for_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "sqs:*"
+      ]
+      Resource = "*"
+    }]
+  })
+}
+
+  name = "sns_fullaccess_lambda_policy"
+  role = aws_iam_role.iam_for_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "sns:*"
+      ]
+      Resource = "*"
+    }]
+  })
+}
+
+
+
+
+resource "aws_iam_role_policy" "dynamodb_fullaccess_lambda_policy" {
+  name = "dynamodb_fullaccess_lambda_policy"
+  role = aws_iam_role.iam_for_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "dynamodb:*"
+      ]
+      Resource = "*"
+    }]
+  })
+}
+
+
+
+
+
+
 
 
 
