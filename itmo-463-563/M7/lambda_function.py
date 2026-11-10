@@ -1,22 +1,53 @@
-import json
-import boto3
-import os
-from io import BytesIO
-from PIL import Image
-from botocore.exceptions import ClientError
-from botocore.config import Config
-from urllib.parse import urlparse
-import logging
-logger = logging.getLogger()
-logger.setLevel("INFO")
+#!/bin/bash
 
-def lambda_handler(event, context):
+# Install dependecies here:
 
-  # Todo add your app.py code here
-  # remove the if logic to check if there are messages on the queue
-  # If the lambda event is triggered, then there is a message in the queue
-    
-  return {
-      'statusCode': 200,
-      'body': json.dumps(responsePresigned)
-  }
+##############################################################################
+# Installing Nginx
+##############################################################################
+sudo apt update -y
+sudo apt install nginx unzip -y
+
+##############################################################################
+# Enable and start Nginx service
+##############################################################################
+sudo systemctl enable nginx
+sudo systemctl start nginx
+
+##############################################################################
+# Install Node JS
+# https://github.com/nodesource/distributions#installation-instructions-deb
+##############################################################################
+curl -fsSL https://deb.nodesource.com/setup_20.x -o nodesource_setup.sh
+sudo bash nodesource_setup.sh
+sudo apt install -y nodejs
+node -v
+##############################################################################
+# Use NPM (node package manager to install AWS JavaScript SDK)
+##############################################################################
+# Run NPM to install the NPM Node packages needed for the code
+# You will start this NodeJS script by executing the command: node app.js
+# from the directory where app.js is located. The program `pm2` can be
+# used to auto start NodeJS applications (as they don't have a normal
+# systemd service handler).
+# <https://pm2.keymetrics.io/docs/usage/quick-start/>. This will require
+# the install of PM2 via npm as well.
+cd /home/ubuntu
+sudo -u ubuntu npm install @aws-sdk/client-dynamodb @aws-sdk/client-sqs @aws-sdk/client-s3 @aws-sdk/client-sns express multer multer-s3 uuid ip
+sudo npm install pm2 -g
+
+# Command to clone your private repo via SSH usign the Private key
+####################################################################
+# Note - change "hajek.git" to be your private repo name (hawk ID) #
+####################################################################
+sudo -u ubuntu git clone git@github.com:alexanderzuo0725/coursera-cloud-computing.git
+
+# Start the nodejs app where it is located via PM2
+# https://pm2.keymetrics.io/docs/usage/quick-start
+cd /home/ubuntu/coursera-cloud-computing/itmo-463-563/M7
+
+sudo cp /home/ubuntu/coursera-cloud-computing/itmo-463-563/M7/default /etc/nginx/sites-available/default
+sudo systemctl daemon-reload
+sudo systemctl restart nginx
+
+sudo pm2 start app.js
