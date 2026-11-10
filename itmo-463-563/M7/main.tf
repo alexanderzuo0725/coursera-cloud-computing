@@ -3,9 +3,9 @@
 ##############################################################################
 # Create a VPC
 resource "aws_vpc" "project" {
-  cidr_block = "172.32.0.0/16"
+  cidr_block           = "172.32.0.0/16"
   enable_dns_hostnames = true
-  
+
   tags = {
     Name = var.tag-name
   }
@@ -37,7 +37,7 @@ resource "aws_security_group" "allow_http" {
 
   tags = {
     proto = "http"
-    Name = var.tag-name
+    Name  = var.tag-name
   }
 }
 
@@ -72,9 +72,9 @@ resource "aws_vpc_security_group_egress_rule" "allow_all_traffic_ipv4" {
 }
 
 data "aws_security_group" "coursera-project" {
-    depends_on = [ aws_security_group.allow_http ]
-    filter {
-    name = "tag:Name"
+  depends_on = [aws_security_group.allow_http]
+  filter {
+    name   = "tag:Name"
     values = [var.tag-name]
   }
 }
@@ -82,9 +82,9 @@ data "aws_security_group" "coursera-project" {
 # Create VPC DHCP options -- public DNS provided by Amazon
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_dhcp_options
 resource "aws_vpc_dhcp_options" "project" {
-  domain_name = "${var.region}.compute.internal"
+  domain_name         = "${var.region}.compute.internal"
   domain_name_servers = ["AmazonProvidedDNS"]
-  
+
   tags = {
     Name = var.tag-name
   }
@@ -109,8 +109,8 @@ resource "aws_internet_gateway" "gw" {
 
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table
 resource "aws_route_table" "example" {
-  depends_on = [ aws_vpc.project ]
-  vpc_id = aws_vpc.project.id
+  depends_on = [aws_vpc.project]
+  vpc_id     = aws_vpc.project.id
 
   route {
     cidr_block = "0.0.0.0/0"
@@ -125,7 +125,7 @@ resource "aws_route_table" "example" {
 # Now we need to associate the route_table to subnets
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route_table_association
 resource "aws_route_table_association" "subnets" {
-  count = var.number-of-azs
+  count          = var.number-of-azs
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.example.id
 }
@@ -161,7 +161,7 @@ data "aws_iam_policy_document" "assume_role" {
 
 # Creating the role
 resource "aws_iam_role" "role" {
-  name               = "project_role"
+  name               = "project_role_module07"
   path               = "/"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 
@@ -257,10 +257,10 @@ resource "aws_iam_role_policy" "sqs_fullaccess_policy" {
 # https://stackoverflow.com/questions/63991120/automatically-create-a-subnet-for-each-aws-availability-zone-in-terraform
 # https://stackoverflow.com/questions/26706683/ec2-t2-micro-instance-has-no-public-dns
 resource "aws_subnet" "private" {
-  depends_on = [ aws_vpc.project ]
-  count = var.number-of-azs
-  availability_zone = data.aws_availability_zones.available.names[count.index]
-  vpc_id   = data.aws_vpc.project.id
+  depends_on              = [aws_vpc.project]
+  count                   = var.number-of-azs
+  availability_zone       = data.aws_availability_zones.available.names[count.index]
+  vpc_id                  = data.aws_vpc.project.id
   map_public_ip_on_launch = true
   # https://developer.hashicorp.com/terraform/language/functions/cidrsubnets
   # The 8 represents /24
@@ -283,7 +283,7 @@ data "aws_subnets" "public" {
 }
 
 output "aws_subnets" {
-    value = [data.aws_vpc.project.id]
+  value = [data.aws_vpc.project.id]
 }
 
 ##############################################################################
@@ -350,7 +350,7 @@ resource "aws_autoscaling_group" "asg" {
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb
 ##############################################################################
 resource "aws_lb" "lb" {
-  depends_on = [ aws_subnet.private ]
+  depends_on         = [aws_subnet.private]
   name               = var.elb-name
   internal           = false
   load_balancer_type = "application"
@@ -379,7 +379,7 @@ output "url" {
 
 resource "aws_autoscaling_attachment" "example" {
   # Wait for lb to be running before attaching to asg
-  depends_on  = [aws_lb.lb]
+  depends_on             = [aws_lb.lb]
   autoscaling_group_name = aws_autoscaling_group.asg.id
   lb_target_group_arn    = aws_lb_target_group.alb-lb-tg.arn
 }
@@ -430,18 +430,18 @@ resource "aws_lb_listener" "front_end" {
 ##############################################################################
 
 resource "aws_s3_bucket" "raw-bucket" {
-  bucket = var.raw-s3-bucket
+  bucket        = var.raw-s3-bucket
   force_destroy = true
 }
 
 resource "aws_s3_bucket" "finished-bucket" {
-  bucket = var.finished-s3-bucket
+  bucket        = var.finished-s3-bucket
   force_destroy = true
 }
 
 resource "aws_s3_bucket_public_access_block" "allow_access_from_another_account-raw" {
-  bucket = aws_s3_bucket.raw-bucket.id
-  depends_on=[data.aws_iam_policy_document.allow_access_from_another_account-raw]
+  bucket     = aws_s3_bucket.raw-bucket.id
+  depends_on = [data.aws_iam_policy_document.allow_access_from_another_account-raw]
 
   block_public_acls       = true
   block_public_policy     = false
@@ -450,9 +450,9 @@ resource "aws_s3_bucket_public_access_block" "allow_access_from_another_account-
 }
 
 resource "aws_s3_bucket_public_access_block" "allow_access_from_another_account-finished" {
-  bucket = aws_s3_bucket.finished-bucket.id
-  depends_on=[data.aws_iam_policy_document.allow_access_from_another_account-finished]
-  
+  bucket     = aws_s3_bucket.finished-bucket.id
+  depends_on = [data.aws_iam_policy_document.allow_access_from_another_account-finished]
+
 
   block_public_acls       = true
   block_public_policy     = false
@@ -461,15 +461,15 @@ resource "aws_s3_bucket_public_access_block" "allow_access_from_another_account-
 }
 
 resource "aws_s3_bucket_policy" "allow_access_from_another_account-raw" {
-  depends_on  = [aws_s3_bucket_public_access_block.allow_access_from_another_account-raw]
-  bucket = aws_s3_bucket.raw-bucket.id
-  policy = data.aws_iam_policy_document.allow_access_from_another_account-raw.json
+  depends_on = [aws_s3_bucket_public_access_block.allow_access_from_another_account-raw]
+  bucket     = aws_s3_bucket.raw-bucket.id
+  policy     = data.aws_iam_policy_document.allow_access_from_another_account-raw.json
 }
 
 resource "aws_s3_bucket_policy" "allow_access_from_another_account-finished" {
-  depends_on  = [aws_s3_bucket_public_access_block.allow_access_from_another_account-finished]
-  bucket = aws_s3_bucket.finished-bucket.id
-  policy = data.aws_iam_policy_document.allow_access_from_another_account-finished.json
+  depends_on = [aws_s3_bucket_public_access_block.allow_access_from_another_account-finished]
+  bucket     = aws_s3_bucket.finished-bucket.id
+  policy     = data.aws_iam_policy_document.allow_access_from_another_account-finished.json
 }
 
 data "aws_iam_policy_document" "allow_access_from_another_account-raw" {
@@ -527,7 +527,7 @@ resource "aws_sqs_queue" "coursera_queue" {
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sns_topic
 resource "aws_sns_topic" "user_updates" {
   name = var.user-sns-topic
-  
+
   tags = {
     Name = var.tag-name
   }
@@ -538,9 +538,9 @@ resource "aws_sns_topic" "user_updates" {
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/dynamodb_tag
 
 resource "aws_dynamodb_table" "coursera-dynamodb-table" {
-  name           = var.dynamodb-name
+  name         = var.dynamodb-name
   billing_mode = "PAY_PER_REQUEST"
-  hash_key       = "RecordNumber"
+  hash_key     = "RecordNumber"
   #range_key      = "datetime"
 
   # This will be the UUID and how we uniquely identify records
@@ -680,8 +680,8 @@ resource "aws_lambda_function" "coursera_lambda" {
   function_name = var.lambda-name
   role          = aws_iam_role.iam_for_lambda.arn
   # https://stackoverflow.com/questions/69740875/why-do-i-get-error-handler-and-runtime-must-be-set-when-packagetype-is-zip-wh
-  handler       = "lambda_function.lambda_handler"
-  timeout       = "120"
+  handler = "lambda_function.lambda_handler"
+  timeout = "120"
 
   //source_code_hash = data.archive_file.lambda.output_base64sha256
 
@@ -704,24 +704,24 @@ resource "aws_iam_role_policy" "cloudwatch_basic_lambda_policy" {
   # Terraform's "jsonencode" function converts a
   # Terraform expression result to valid JSON syntax.
   policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-            ],
-            "Resource": "*"
-        }
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        "Resource" : "*"
+      }
     ]
-})
+  })
 }
 
 resource "aws_s3_bucket_notification" "bucket_notification" {
-  bucket = aws_s3_bucket.raw-bucket.id
-  depends_on = [ aws_lambda_permission.with_s3 ]
+  bucket     = aws_s3_bucket.raw-bucket.id
+  depends_on = [aws_lambda_permission.with_s3]
 
   lambda_function {
     lambda_function_arn = aws_lambda_function.coursera_lambda.arn
@@ -734,10 +734,10 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_permission
 
 resource "aws_lambda_permission" "with_s3" {
-  statement_id  = "AllowExecutionFromS3"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.coursera_lambda.function_name
-  principal     = "s3.amazonaws.com"
-  source_arn    = aws_s3_bucket.raw-bucket.arn
-  source_account         = var.source-account
+  statement_id   = "AllowExecutionFromS3"
+  action         = "lambda:InvokeFunction"
+  function_name  = aws_lambda_function.coursera_lambda.function_name
+  principal      = "s3.amazonaws.com"
+  source_arn     = aws_s3_bucket.raw-bucket.arn
+  source_account = var.source-account
 }
