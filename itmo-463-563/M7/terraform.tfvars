@@ -1,6 +1,6 @@
 # Add values
 # Use the AMI of the custom Ec2 image you previously created
-imageid                = "ami-021769d848635b6f4"
+imageid = "ami-021769d848635b6f4"
 # Use t2.micro for the AWS Free Tier
 instance-type          = "t2.micro"
 key-name               = "coursera-key"
@@ -15,8 +15,8 @@ min                    = 2
 max                    = 5
 number-of-azs          = 3
 region                 = "us-east-2"
-raw-s3-bucket          = "jrh-raw-bucket"
-finished-s3-bucket     = "jrh-finished-bucket"
+raw-s3-bucket          = "jrh-raw-193525062241"
+finished-s3-bucket     = "jrh-finished-193525062241"
 sqs-name               = "jrh-sqs"
 dynamodb-name          = "jrh-dynamo"
 lambda-name            = "coursera-project"
